@@ -1,7 +1,7 @@
 import json
 import os
-import sys
 from math import radians, cos, sin, asin, sqrt
+import argparse
 
 
 BARS = 'bars.json'
@@ -34,12 +34,16 @@ def load_data(file_path=BARS):
             return None
 
 
+def _get_sorted_list_by_seats_count(data, reverse):
+    return sorted(data, key=lambda bar: bar['SeatsCount'], reverse=reverse)
+
+
 def get_biggest_bar(data):
-    return sorted(data, key=lambda bar: bar['SeatsCount']).pop()
+    return _get_sorted_list_by_seats_count(data, False).pop()
 
 
 def get_smallest_bar(data):
-    return sorted(data, key=lambda bar: bar['SeatsCount'], reverse=True).pop()
+    return _get_sorted_list_by_seats_count(data, True).pop()
 
 
 def get_closest_bar(data, longitude, latitude):
@@ -48,22 +52,18 @@ def get_closest_bar(data, longitude, latitude):
 
 
 if __name__ == '__main__':
-    try:
-        command = sys.argv[1]
-    except IndexError:
-        print('usage: python3 bars.py [get_biggest_bar|get_smallest_bar|get_closest_bar X Y')
-    else:
-        bars = load_data()
-        if command == 'get_biggest_bar':
-            print(get_biggest_bar(bars))
-        elif command == 'get_smallest_bar':
-            print(get_smallest_bar(bars))
-        elif command == 'get_closest_bar':
-            try:
-                x_coordinate, y_coordinate = float(sys.argv[2]), float(sys.argv[3])
-            except (IndexError, ValueError):
-                print('usage: python3 bars.py [get_biggest_bar|get_smallest_bar|get_closest_bar X Y')
-            else:
-                print(get_closest_bar(bars, x_coordinate, y_coordinate))
-        else:
-            print('usage: python3 bars.py [get_biggest_bar|get_smallest_bar|get_closest_bar X Y')
+    parser = argparse.ArgumentParser(description='Find the best bar from different criteria.')
+    subparsers = parser.add_subparsers(dest='sub_command_name')
+    subparsers.add_parser('get_biggest_bar')
+    subparsers.add_parser('get_smallest_bar')
+    get_closest_bar_ = subparsers.add_parser('get_closest_bar')
+    get_closest_bar_.add_argument('lon', type=float, help='longitude')
+    get_closest_bar_.add_argument('lat', type=float, help='latitude')
+    args = parser.parse_args()
+    bars = load_data()
+    if args.sub_command_name == 'get_closest_bar':
+        print(get_closest_bar(bars, args.lon, args.lat))
+    elif args.sub_command_name == 'get_biggest_bar':
+        print(get_biggest_bar(bars))
+    elif args.sub_command_name == 'get_smallest_bar':
+        print(get_smallest_bar(bars))
