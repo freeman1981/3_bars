@@ -1,33 +1,31 @@
 import json
 import os
-from math import radians, cos, sin, asin, sqrt
+import sys
 import argparse
+from math import radians, cos, sin, asin, sqrt
 
 
-BARS = 'bars.json'
-
-
-def haversine(lon1, lat1, lon2, lat2):
+def haversine(longitude1, latitude1, longitude2, latitude2):
     """
+    https://en.wikipedia.org/wiki/Haversine_formula
     Calculate the great circle distance between two points
-    on the earth (specified in decimal degrees)
+    on the earth (specified in decimal degrees).
+    using sqrt((x1-x2)**2+(y1-y2)**2) - not right - Earth like sphere
     """
     # convert decimal degrees to radians
-    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+    longitude1, latitude1, longitude2, latitude2 = map(radians, [longitude1, latitude1, longitude2, latitude2])
 
-    # haversine formula
-    dlon = lon2 - lon1
-    dlat = lat2 - lat1
-    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
-    c = 2 * asin(sqrt(a))
+    difference_longitude = longitude2 - longitude1
+    difference_latitude = latitude2 - latitude1
     earth_radius = 6371
-    return c * earth_radius
+    return 2 * earth_radius * asin(sqrt(
+        sin(difference_latitude / 2) ** 2 + cos(latitude1) * cos(latitude2) * sin(difference_longitude / 2) ** 2))
 
 
-def load_data(file_path=BARS):
+def load_data(file_path):
     if not os.path.exists(file_path):
         return None
-    with open(file_path, 'r', errors='ignore') as file_handler:
+    with open(file_path, 'r', encoding='cp1251') as file_handler:
         try:
             return json.load(file_handler)
         except json.decoder.JSONDecodeError:
@@ -51,19 +49,36 @@ def get_closest_bar(data, longitude, latitude):
                   float(bar['Longitude_WGS84']), float(bar['Latitude_WGS84']))).pop()
 
 
-if __name__ == '__main__':
+def get_args():
+    """Prepare parser and parse args from command line"""
     parser = argparse.ArgumentParser(description='Find the best bar from different criteria.')
-    subparsers = parser.add_subparsers(dest='sub_command_name')
-    subparsers.add_parser('get_biggest_bar')
-    subparsers.add_parser('get_smallest_bar')
-    get_closest_bar_ = subparsers.add_parser('get_closest_bar')
-    get_closest_bar_.add_argument('lon', type=float, help='longitude')
-    get_closest_bar_.add_argument('lat', type=float, help='latitude')
-    args = parser.parse_args()
-    bars = load_data()
-    if args.sub_command_name == 'get_closest_bar':
-        print(get_closest_bar(bars, args.lon, args.lat))
-    elif args.sub_command_name == 'get_biggest_bar':
-        print(get_biggest_bar(bars))
-    elif args.sub_command_name == 'get_smallest_bar':
-        print(get_smallest_bar(bars))
+    parser.add_argument('path', type=str, help='path to json bars')
+    parser.add_argument('lon', type=float, help='longitude')
+    parser.add_argument('lat', type=float, help='latitude')
+    return parser.parse_args()
+
+
+def _get_name_and_address_from_json_bar_object(bar_json_object):
+    return bar_json_object['Name'], bar_json_object['Address']
+
+
+def print_json_bar_with_prefix_message(message, bar_json_object):
+    bar_name, bar_address = _get_name_and_address_from_json_bar_object(bar_json_object)
+    print('{message}: {bar_name}, адресс: {bar_address}'.format(
+        message=message, bar_name=bar_name, bar_address=bar_address
+    ))
+
+
+if __name__ == '__main__':
+    args = get_args()
+    bars = load_data(args.path)
+    if bars is None:
+        print('path {} does not exists or not json'.format(args.path))
+        sys.exit(1)
+    try:
+        print_json_bar_with_prefix_message('Самый близкий бар', get_closest_bar(bars, args.lon, args.lat))
+        print_json_bar_with_prefix_message('Самый большой бар', get_biggest_bar(bars))
+        print_json_bar_with_prefix_message('Самый маленький бар', get_smallest_bar(bars))
+    except KeyError:
+        print('script receive unexpected json')
+        sys.exit(1)
