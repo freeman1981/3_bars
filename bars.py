@@ -2,24 +2,14 @@ import json
 import os
 import sys
 import argparse
-from math import radians, cos, sin, asin, sqrt
+from math import sqrt
 
 
-def haversine(longitude1, latitude1, longitude2, latitude2):
+def distance_between_points(longitude1, latitude1, longitude2, latitude2):
+    """We are using euclidean distance
+    https://en.wikipedia.org/wiki/Euclidean_distance
     """
-    https://en.wikipedia.org/wiki/Haversine_formula
-    Calculate the great circle distance between two points
-    on the earth (specified in decimal degrees).
-    using sqrt((x1-x2)**2+(y1-y2)**2) - not right - Earth like sphere
-    """
-    # convert decimal degrees to radians
-    longitude1, latitude1, longitude2, latitude2 = map(radians, [longitude1, latitude1, longitude2, latitude2])
-
-    difference_longitude = longitude2 - longitude1
-    difference_latitude = latitude2 - latitude1
-    earth_radius = 6371
-    return 2 * earth_radius * asin(sqrt(
-        sin(difference_latitude / 2) ** 2 + cos(latitude1) * cos(latitude2) * sin(difference_longitude / 2) ** 2))
+    return sqrt((longitude1 - longitude2) ** 2 + (latitude1 - latitude2) ** 2)
 
 
 def load_data(file_path):
@@ -45,8 +35,9 @@ def get_smallest_bar(data):
 
 
 def get_closest_bar(data, longitude, latitude):
-    return sorted(data, key=lambda bar: haversine(longitude, latitude,
-                  float(bar['Longitude_WGS84']), float(bar['Latitude_WGS84']))).pop()
+    return sorted(data, key=lambda bar: distance_between_points(
+        longitude, latitude,
+        float(bar['Longitude_WGS84']), float(bar['Latitude_WGS84']))).pop()
 
 
 def get_args():
