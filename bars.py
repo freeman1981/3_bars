@@ -5,10 +5,7 @@ import argparse
 from math import sqrt
 
 
-def distance_between_points(longitude1, latitude1, longitude2, latitude2):
-    """We are using euclidean distance
-    https://en.wikipedia.org/wiki/Euclidean_distance
-    """
+def get_distance_between_points(longitude1, latitude1, longitude2, latitude2):
     return sqrt((longitude1 - longitude2) ** 2 + (latitude1 - latitude2) ** 2)
 
 
@@ -35,13 +32,12 @@ def get_smallest_bar(data):
 
 
 def get_closest_bar(data, longitude, latitude):
-    return sorted(data, key=lambda bar: distance_between_points(
+    return sorted(data, key=lambda bar: get_distance_between_points(
         longitude, latitude,
         float(bar['Longitude_WGS84']), float(bar['Latitude_WGS84']))).pop()
 
 
-def get_args():
-    """Prepare parser and parse args from command line"""
+def parse_command_line_and_get_it_args():
     parser = argparse.ArgumentParser(description='Find the best bar from different criteria.')
     parser.add_argument('path', type=str, help='path to json bars')
     parser.add_argument('lon', type=float, help='longitude')
@@ -61,7 +57,7 @@ def print_json_bar_with_prefix_message(message, bar_json_object):
 
 
 if __name__ == '__main__':
-    args = get_args()
+    args = parse_command_line_and_get_it_args()
     bars = load_data(args.path)
     if bars is None:
         print('path {} does not exists or not json'.format(args.path))
